@@ -1,0 +1,34 @@
+name: Parse & Export PBI Metadata
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Parse TMDL and export metadata
+        run: python3 scripts/export_metadata.py
+
+      - name: Upload PBI metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbi-metadata-finance-report
+          path: artifacts/pbi_metadata.json
+          retention-days: 30
+
+      - name: Trigger docs rebuild
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repository: ${{ github.repository_owner }}/consolidated-dbt-docs
+          event-type: docs-updated
+          client-payload: '{"project": "powerbi_finance_report", "repo": "${{ github.repository }}"}'
